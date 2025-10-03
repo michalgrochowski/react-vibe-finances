@@ -1,0 +1,109 @@
+// Prisma schema for Vibe Finances
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String    @id @default(uuid())
+  username       String    @unique
+  email          String    @unique
+  emailVerified  DateTime? @map("email_verified")
+  hashedPassword String?   @map("hashed_password")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  profile        Profile?
+
+  @@map("users")
+}
+
+model Profile {
+  userId             String   @id @map("user_id")
+  user               User     @relation(fields: [userId], references: [id])
+  displayName        String?  @map("display_name")
+  themePref          String   @default("system") @map("theme_pref")
+  defaultSalaryCents BigInt   @default(0) @map("default_salary_cents")
+  firstTrackedMonth  DateTime @map("first_tracked_month")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@map("profiles")
+}
+
+model BudgetMonth {
+  id                  String   @id @default(uuid())
+  userId              String   @map("user_id")
+  month               DateTime
+  salaryOverrideCents BigInt?  @map("salary_override_cents")
+  savingsCents        BigInt   @default(0) @map("savings_cents")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  expenses            Expense[]
+
+  @@unique([userId, month])
+  @@index([userId, month(sort: Desc)])
+  @@map("budget_months")
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  expenses           Expense[]
+  recurringExpenses  RecurringExpense[]
+
+  @@unique([userId, name])
+  @@map("categories")
+}
+
+model Expense {
+  id           String       @id @default(uuid())
+  userId       String       @map("user_id")
+  monthId      String       @map("month_id")
+  name         String
+  amountCents  BigInt       @map("amount_cents")
+  categoryId   String       @map("category_id")
+  origin       String       @default("manual")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  budgetMonth  BudgetMonth  @relation(fields: [monthId], references: [id], onDelete: Cascade)
+  category     Category     @relation(fields: [categoryId], references: [id])
+
+  @@index([userId, monthId])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, categoryId])
+  @@map("expenses")
+}
+
+model RecurringExpense {
+  id           String    @id @default(uuid())
+  userId       String    @map("user_id")
+  name         String
+  amountCents  BigInt    @map("amount_cents")
+  categoryId   String    @map("category_id")
+  active       Boolean   @default(true)
+  startsOn     DateTime  @map("starts_on")
+  endsOn       DateTime? @map("ends_on")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  category     Category  @relation(fields: [categoryId], references: [id])
+
+  @@index([userId, active])
+  @@index([userId, startsOn])
+  @@index([userId, categoryId])
+  @@map("recurring_expenses")
+}
+
+
