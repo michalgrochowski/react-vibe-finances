@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
 const updateProfileSchema = z.object({
-  defaultSalaryCents: z.number().int().min(0).optional(),
+  defaultSalaryCents: z.number().int().min(0).max(99999900).optional(), // Max 999,999
   firstTrackedMonth: z.string().datetime().optional(),
   themePref: z.enum(["light", "dark", "system"]).optional(),
 });

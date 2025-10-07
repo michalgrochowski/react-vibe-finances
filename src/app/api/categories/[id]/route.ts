@@ -4,13 +4,8 @@ import { authOptions } from "@/lib/auth/nextauth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
-const updateRecurringExpenseSchema = z.object({
-  name: z.string().min(1).max(70).optional(),
-  amountCents: z.number().int().min(0).max(99999900).optional(), // Max 999,999
-  categoryId: z.string().uuid().optional(),
-  startsOn: z.string().datetime().optional(),
-  endsOn: z.string().datetime().optional().nullable(),
-  active: z.boolean().optional(),
+const updateCategorySchema = z.object({
+  name: z.string().min(1).max(50),
 });
 
 export async function PATCH(
@@ -25,10 +20,10 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await request.json();
-    const data = updateRecurringExpenseSchema.parse(body);
+    const data = updateCategorySchema.parse(body);
 
     // Check ownership
-    const existing = await prisma.recurringExpense.findUnique({
+    const existing = await prisma.category.findUnique({
       where: { id },
     });
 
@@ -36,39 +31,32 @@ export async function PATCH(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    // Verify category ownership if categoryId is being updated
-    if (data.categoryId) {
-      const category = await prisma.category.findUnique({
-        where: { id: data.categoryId },
-      });
-
-      if (!category || category.userId !== session.user.id) {
-        return NextResponse.json({ error: "Invalid category" }, { status: 400 });
-      }
-    }
-
-    const updateData: any = {};
-    if (data.name !== undefined) updateData.name = data.name;
-    if (data.amountCents !== undefined) updateData.amountCents = data.amountCents;
-    if (data.categoryId !== undefined) updateData.categoryId = data.categoryId;
-    if (data.startsOn !== undefined) updateData.startsOn = new Date(data.startsOn);
-    if (data.endsOn !== undefined) updateData.endsOn = data.endsOn ? new Date(data.endsOn) : null;
-    if (data.active !== undefined) updateData.active = data.active;
-
-    const expense = await prisma.recurringExpense.update({
-      where: { id },
-      data: updateData,
-      include: {
-        category: true,
+    // Check if another category with same name already exists for user
+    const duplicate = await prisma.category.findFirst({
+      where: {
+        userId: session.user.id,
+        name: data.name,
+        id: { not: id },
       },
     });
 
-    return NextResponse.json({
-      ...expense,
-      amountCents: Number(expense.amountCents),
+    if (duplicate) {
+      return NextResponse.json(
+        { error: "Category with this name already exists" },
+        { status: 400 }
+      );
+    }
+
+    const category = await prisma.category.update({
+      where: { id },
+      data: {
+        name: data.name,
+      },
     });
+
+    return NextResponse.json({ category });
   } catch (error) {
-    console.error("Update recurring expense error:", error);
+    console.error("Update category error:", error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: "Invalid input data" }, { status: 400 });
@@ -91,7 +79,7 @@ export async function DELETE(
     const { id } = await params;
 
     // Check ownership
-    const existing = await prisma.recurringExpense.findUnique({
+    const existing = await prisma.category.findUnique({
       where: { id },
     });
 
@@ -99,13 +87,30 @@ export async function DELETE(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    await prisma.recurringExpense.delete({
+    // Check if category is in use
+    const expensesCount = await prisma.expense.count({
+      where: { categoryId: id },
+    });
+
+    const recurringExpensesCount = await prisma.recurringExpense.count({
+      where: { categoryId: id },
+    });
+
+    if (expensesCount > 0 || recurringExpensesCount > 0) {
+      return NextResponse.json(
+        { error: "Cannot delete category that is in use" },
+        { status: 400 }
+      );
+    }
+
+    await prisma.category.delete({
       where: { id },
     });
 
     return NextResponse.json({ message: "Deleted successfully" });
   } catch (error) {
-    console.error("Delete recurring expense error:", error);
+    console.error("Delete category error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+

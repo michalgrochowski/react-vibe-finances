@@ -23,6 +23,10 @@ import {
   Alert,
   Stack,
   CircularProgress,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -40,6 +44,12 @@ import {
   useUpdateRecurringExpense,
   useDeleteRecurringExpense,
 } from "@/lib/hooks/useRecurringExpenses";
+import {
+  useCategories,
+  useCreateCategory,
+  useUpdateCategory,
+  useDeleteCategory,
+} from "@/lib/hooks/useCategories";
 
 export default function SettingsPage() {
   const { data: session } = useSession();
@@ -50,12 +60,17 @@ export default function SettingsPage() {
   // Fetch data
   const { data: profile, isLoading: profileLoading } = useProfile();
   const { data: recurringExpenses = [], isLoading: expensesLoading } = useRecurringExpenses();
+  const { data: categoriesData, isLoading: categoriesLoading } = useCategories();
+  const categories = categoriesData?.categories || [];
 
   // Mutations
   const updateProfile = useUpdateProfile();
   const createExpense = useCreateRecurringExpense();
   const updateExpense = useUpdateRecurringExpense();
   const deleteExpense = useDeleteRecurringExpense();
+  const createCategory = useCreateCategory();
+  const updateCategory = useUpdateCategory();
+  const deleteCategory = useDeleteCategory();
 
   // Local state
   const [monthlySalary, setMonthlySalary] = useState("");
@@ -65,7 +80,13 @@ export default function SettingsPage() {
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [newExpenseName, setNewExpenseName] = useState("");
   const [newExpenseAmount, setNewExpenseAmount] = useState("");
-  const [editingExpense, setEditingExpense] = useState<{ id: string; name: string; amountCents: number } | null>(null);
+  const [newExpenseCategory, setNewExpenseCategory] = useState("");
+  const [editingExpense, setEditingExpense] = useState<{ id: string; name: string; amountCents: number; categoryId: string } | null>(null);
+  
+  // Category state
+  const [showAddCategory, setShowAddCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [editingCategory, setEditingCategory] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -95,17 +116,19 @@ export default function SettingsPage() {
   };
 
   const handleAddExpense = () => {
-    if (newExpenseName && newExpenseAmount) {
+    if (newExpenseName && newExpenseAmount && newExpenseCategory) {
       const cents = Math.round(parseFloat(newExpenseAmount) * 100);
       createExpense.mutate(
         {
           name: newExpenseName,
           amountCents: cents,
+          categoryId: newExpenseCategory,
         },
         {
           onSuccess: () => {
             setNewExpenseName("");
             setNewExpenseAmount("");
+            setNewExpenseCategory("");
             setShowAddExpense(false);
           },
         }
@@ -117,23 +140,26 @@ export default function SettingsPage() {
     setEditingExpense(expense);
     setNewExpenseName(expense.name);
     setNewExpenseAmount((expense.amountCents / 100).toString());
+    setNewExpenseCategory(expense.categoryId);
     setShowAddExpense(true);
   };
 
   const handleUpdateExpense = () => {
-    if (editingExpense && newExpenseName && newExpenseAmount) {
+    if (editingExpense && newExpenseName && newExpenseAmount && newExpenseCategory) {
       const cents = Math.round(parseFloat(newExpenseAmount) * 100);
       updateExpense.mutate(
         {
           id: editingExpense.id,
           name: newExpenseName,
           amountCents: cents,
+          categoryId: newExpenseCategory,
         },
         {
           onSuccess: () => {
             setEditingExpense(null);
             setNewExpenseName("");
             setNewExpenseAmount("");
+            setNewExpenseCategory("");
             setShowAddExpense(false);
           },
         }
@@ -147,7 +173,62 @@ export default function SettingsPage() {
     }
   };
 
-  if (profileLoading || expensesLoading) {
+  // Category handlers
+  const handleAddCategory = () => {
+    if (newCategoryName.trim()) {
+      createCategory.mutate(
+        { name: newCategoryName.trim() },
+        {
+          onSuccess: () => {
+            setNewCategoryName("");
+            setShowAddCategory(false);
+          },
+          onError: (error: any) => {
+            alert(error.message || "Failed to create category");
+          },
+        }
+      );
+    }
+  };
+
+  const handleEditCategory = (category: any) => {
+    setEditingCategory(category);
+    setNewCategoryName(category.name);
+    setShowAddCategory(true);
+  };
+
+  const handleUpdateCategory = () => {
+    if (editingCategory && newCategoryName.trim()) {
+      updateCategory.mutate(
+        {
+          id: editingCategory.id,
+          name: newCategoryName.trim(),
+        },
+        {
+          onSuccess: () => {
+            setEditingCategory(null);
+            setNewCategoryName("");
+            setShowAddCategory(false);
+          },
+          onError: (error: any) => {
+            alert(error.message || "Failed to update category");
+          },
+        }
+      );
+    }
+  };
+
+  const handleDeleteCategory = (id: string) => {
+    if (confirm("Are you sure you want to delete this category? This will only work if no expenses are using it.")) {
+      deleteCategory.mutate(id, {
+        onError: (error: any) => {
+          alert(error.message || "Failed to delete category");
+        },
+      });
+    }
+  };
+
+  if (profileLoading || expensesLoading || categoriesLoading) {
     return (
       <Container maxWidth="md" sx={{ py: 4, display: "flex", justifyContent: "center" }}>
         <CircularProgress />
@@ -196,6 +277,7 @@ export default function SettingsPage() {
                   onBlur={handleSalaryBlur}
                   placeholder="Enter amount"
                   size="small"
+                  inputProps={{ min: 0, max: 999999, step: 0.01 }}
                 />
               </Box>
             </CardContent>
@@ -232,6 +314,55 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
+          {/* Categories */}
+          <Card>
+            <CardContent>
+              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
+                <Typography variant="h6">Categories:</Typography>
+                <IconButton
+                  onClick={() => {
+                    setEditingCategory(null);
+                    setNewCategoryName("");
+                    setShowAddCategory(true);
+                  }}
+                  sx={{ 
+                    color: 'text.primary',
+                    '&:hover': {
+                      backgroundColor: 'action.hover',
+                    }
+                  }}
+                >
+                  <AddIcon />
+                </IconButton>
+              </Box>
+
+              <List>
+                {categories.map((category: any) => (
+                  <ListItem
+                    key={category.id}
+                    secondaryAction={
+                      <Box>
+                        <IconButton edge="end" onClick={() => handleEditCategory(category)}>
+                          <EditIcon />
+                        </IconButton>
+                        <IconButton edge="end" onClick={() => handleDeleteCategory(category.id)}>
+                          <DeleteIcon />
+                        </IconButton>
+                      </Box>
+                    }
+                  >
+                    <ListItemText
+                      primary={category.name}
+                      slotProps={{
+                        primary: { fontWeight: 500 }
+                      }}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            </CardContent>
+          </Card>
+
           {/* Recurring Expenses */}
           <Card>
             <CardContent>
@@ -242,9 +373,15 @@ export default function SettingsPage() {
                     setEditingExpense(null);
                     setNewExpenseName("");
                     setNewExpenseAmount("");
+                    setNewExpenseCategory("");
                     setShowAddExpense(true);
                   }}
-                  color="primary"
+                  sx={{ 
+                    color: 'text.primary',
+                    '&:hover': {
+                      backgroundColor: 'action.hover',
+                    }
+                  }}
                 >
                   <AddIcon />
                 </IconButton>
@@ -310,6 +447,7 @@ export default function SettingsPage() {
                 value={newExpenseName}
                 onChange={(e) => setNewExpenseName(e.target.value)}
                 fullWidth
+                inputProps={{ maxLength: 70 }}
               />
               <TextField
                 label="Amount"
@@ -317,7 +455,22 @@ export default function SettingsPage() {
                 value={newExpenseAmount}
                 onChange={(e) => setNewExpenseAmount(e.target.value)}
                 fullWidth
+                inputProps={{ min: 0, max: 999999, step: 0.01 }}
               />
+              <FormControl fullWidth>
+                <InputLabel>Category</InputLabel>
+                <Select
+                  value={newExpenseCategory}
+                  onChange={(e) => setNewExpenseCategory(e.target.value)}
+                  label="Category"
+                >
+                  {categories.map((category: any) => (
+                    <MenuItem key={category.id} value={category.id}>
+                      {category.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Stack>
           </DialogContent>
           <DialogActions>
@@ -331,6 +484,38 @@ export default function SettingsPage() {
                 <CircularProgress size={24} />
               ) : (
                 editingExpense ? "Update" : "Add"
+              )}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Add/Edit Category Dialog */}
+        <Dialog open={showAddCategory} onClose={() => setShowAddCategory(false)}>
+          <DialogTitle>
+            {editingCategory ? "Edit Category" : "Add Category"}
+          </DialogTitle>
+          <DialogContent>
+            <Stack spacing={2} sx={{ mt: 1, minWidth: 300 }}>
+              <TextField
+                label="Category Name"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                fullWidth
+                inputProps={{ maxLength: 50 }}
+              />
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setShowAddCategory(false)}>Cancel</Button>
+            <Button
+              onClick={editingCategory ? handleUpdateCategory : handleAddCategory}
+              variant="contained"
+              disabled={createCategory.isPending || updateCategory.isPending}
+            >
+              {(createCategory.isPending || updateCategory.isPending) ? (
+                <CircularProgress size={24} />
+              ) : (
+                editingCategory ? "Update" : "Add"
               )}
             </Button>
           </DialogActions>

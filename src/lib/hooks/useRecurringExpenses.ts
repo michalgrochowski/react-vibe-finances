@@ -20,6 +20,7 @@ type RecurringExpense = {
 type CreateRecurringExpenseData = {
   name: string;
   amountCents: number;
+  categoryId: string;
   startsOn?: string;
   endsOn?: string | null;
 };
@@ -28,6 +29,7 @@ type UpdateRecurringExpenseData = {
   id: string;
   name?: string;
   amountCents?: number;
+  categoryId?: string;
   startsOn?: string;
   endsOn?: string | null;
   active?: boolean;

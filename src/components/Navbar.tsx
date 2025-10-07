@@ -1,7 +1,7 @@
 "use client";
 
 import { AppBar, Toolbar, Typography, Button, Box } from "@mui/material";
-import { Settings as SettingsIcon, Logout as LogoutIcon } from "@mui/icons-material";
+import { Settings as SettingsIcon, Logout as LogoutIcon, Dashboard as DashboardIcon } from "@mui/icons-material";
 import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
@@ -25,7 +25,7 @@ export default function Navbar() {
         <Typography
           variant="h6"
           component={Link}
-          href="/"
+          href="/dashboard"
           sx={{
             flexGrow: 1,
             fontWeight: 400,
@@ -38,6 +38,15 @@ export default function Navbar() {
         </Typography>
 
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        <Button
+            color="inherit"
+            startIcon={<DashboardIcon />}
+            component={Link}
+            href="/dashboard"
+          >
+            Dashboard
+          </Button>
+
           <Button
             color="inherit"
             startIcon={<SettingsIcon />}

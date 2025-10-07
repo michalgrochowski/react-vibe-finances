@@ -5,8 +5,9 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
 const createRecurringExpenseSchema = z.object({
-  name: z.string().min(1).max(255),
-  amountCents: z.number().int().min(0),
+  name: z.string().min(1).max(70),
+  amountCents: z.number().int().min(0).max(99999900), // Max 999,999
+  categoryId: z.string().uuid(),
   startsOn: z.string().datetime().optional(),
   endsOn: z.string().datetime().optional().nullable(),
 });
@@ -53,21 +54,13 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const data = createRecurringExpenseSchema.parse(body);
 
-    // Get or create a default category
-    let category = await prisma.category.findFirst({
-      where: {
-        userId: session.user.id,
-        name: "General",
-      },
+    // Verify category ownership
+    const category = await prisma.category.findUnique({
+      where: { id: data.categoryId },
     });
 
-    if (!category) {
-      category = await prisma.category.create({
-        data: {
-          userId: session.user.id,
-          name: "General",
-        },
-      });
+    if (!category || category.userId !== session.user.id) {
+      return NextResponse.json({ error: "Invalid category" }, { status: 400 });
     }
 
     const expense = await prisma.recurringExpense.create({
@@ -75,7 +68,7 @@ export async function POST(request: NextRequest) {
         userId: session.user.id,
         name: data.name,
         amountCents: data.amountCents,
-        categoryId: category.id,
+        categoryId: data.categoryId,
         startsOn: data.startsOn ? new Date(data.startsOn) : new Date(),
         endsOn: data.endsOn ? new Date(data.endsOn) : null,
         active: true,

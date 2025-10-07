@@ -1,5 +1,3 @@
-// Prisma schema for Vibe Finances
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,28 +8,34 @@ datasource db {
 }
 
 model User {
-  id             String    @id @default(uuid())
-  username       String    @unique
-  email          String    @unique
-  emailVerified  DateTime? @map("email_verified")
-  hashedPassword String?   @map("hashed_password")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
-
-  profile        Profile?
+  id                 String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  username           String             @unique @db.Citext
+  email              String             @unique @db.Citext
+  emailVerified      DateTime?          @map("email_verified") @db.Timestamptz(6)
+  hashedPassword     String?            @map("hashed_password")
+  createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  budget_months      BudgetMonth[]
+  categories         Category[]
+  expenses           Expense[]
+  profile            Profile?
+  recurring_expenses RecurringExpense[]
+  savings_accounts   savings_accounts[]
+  savings_entries    savings_entries[]
+  savings_goals      savings_goals[]
 
   @@map("users")
 }
 
 model Profile {
-  userId             String   @id @map("user_id")
-  user               User     @relation(fields: [userId], references: [id])
+  userId             String   @id @map("user_id") @db.Uuid
   displayName        String?  @map("display_name")
   themePref          String   @default("system") @map("theme_pref")
   defaultSalaryCents BigInt   @default(0) @map("default_salary_cents")
-  firstTrackedMonth  DateTime @map("first_tracked_month")
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt @map("updated_at")
+  firstTrackedMonth  DateTime @map("first_tracked_month") @db.Date
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("profiles")
 }
@@ -39,12 +43,13 @@ model Profile {
 model BudgetMonth {
   id                  String   @id @default(uuid())
   userId              String   @map("user_id")
-  month               DateTime
+  month               String   // Format: "2025-10"
   salaryOverrideCents BigInt?  @map("salary_override_cents")
   savingsCents        BigInt   @default(0) @map("savings_cents")
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
 
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expenses            Expense[]
 
   @@unique([userId, month])
@@ -53,57 +58,99 @@ model BudgetMonth {
 }
 
 model Category {
-  id        String   @id @default(uuid())
-  userId    String   @map("user_id")
-  name      String
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  expenses           Expense[]
-  recurringExpenses  RecurringExpense[]
+  id                String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String             @map("user_id") @db.Uuid
+  name              String
+  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  users             User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  expenses          Expense[]
+  recurringExpenses RecurringExpense[]
 
   @@unique([userId, name])
   @@map("categories")
 }
 
 model Expense {
-  id           String       @id @default(uuid())
-  userId       String       @map("user_id")
-  monthId      String       @map("month_id")
-  name         String
-  amountCents  BigInt       @map("amount_cents")
-  categoryId   String       @map("category_id")
-  origin       String       @default("manual")
-  createdAt    DateTime     @default(now()) @map("created_at")
-  updatedAt    DateTime     @updatedAt @map("updated_at")
+  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String      @map("user_id") @db.Uuid
+  monthId     String      @map("month_id") @db.Uuid
+  name        String
+  amountCents BigInt      @map("amount_cents")
+  categoryId  String      @map("category_id") @db.Uuid
+  origin      String      @default("manual")
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  category    Category    @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  budgetMonth BudgetMonth @relation(fields: [monthId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users       User        @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  budgetMonth  BudgetMonth  @relation(fields: [monthId], references: [id], onDelete: Cascade)
-  category     Category     @relation(fields: [categoryId], references: [id])
-
-  @@index([userId, monthId])
-  @@index([userId, createdAt(sort: Desc)])
-  @@index([userId, categoryId])
+  @@index([userId, categoryId], map: "idx_expenses_user_category")
+  @@index([userId, createdAt(sort: Desc)], map: "idx_expenses_user_created_desc")
+  @@index([userId, monthId], map: "idx_expenses_user_month")
   @@map("expenses")
 }
 
 model RecurringExpense {
-  id           String    @id @default(uuid())
-  userId       String    @map("user_id")
-  name         String
-  amountCents  BigInt    @map("amount_cents")
-  categoryId   String    @map("category_id")
-  active       Boolean   @default(true)
-  startsOn     DateTime  @map("starts_on")
-  endsOn       DateTime? @map("ends_on")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  name        String
+  amountCents BigInt    @map("amount_cents")
+  categoryId  String    @map("category_id") @db.Uuid
+  active      Boolean   @default(true)
+  startsOn    DateTime  @map("starts_on") @db.Date
+  endsOn      DateTime? @map("ends_on") @db.Date
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  category    Category  @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users       User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  category     Category  @relation(fields: [categoryId], references: [id])
-
-  @@index([userId, active])
-  @@index([userId, startsOn])
-  @@index([userId, categoryId])
+  @@index([userId, active], map: "idx_recurring_expenses_user_active")
+  @@index([userId, categoryId], map: "idx_recurring_expenses_user_category")
+  @@index([userId, startsOn], map: "idx_recurring_expenses_user_starts")
   @@map("recurring_expenses")
 }
 
+model savings_accounts {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id         String            @db.Uuid
+  name            String
+  created_at      DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime          @default(now()) @db.Timestamptz(6)
+  users           User              @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  savings_entries savings_entries[]
+  savings_goals   savings_goals[]
+}
 
+model savings_entries {
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String            @db.Uuid
+  account_id       String?           @db.Uuid
+  goal_id          String?           @db.Uuid
+  amount_cents     BigInt
+  happened_on      DateTime          @db.Date
+  note             String?
+  created_at       DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime          @default(now()) @db.Timestamptz(6)
+  savings_accounts savings_accounts? @relation(fields: [account_id], references: [id], onUpdate: NoAction)
+  savings_goals    savings_goals?    @relation(fields: [goal_id], references: [id], onUpdate: NoAction)
+  users            User              @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id, happened_on(sort: Desc)], map: "idx_savings_entries_user_happened_desc")
+}
+
+model savings_goals {
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String            @db.Uuid
+  name             String
+  target_cents     BigInt
+  due_date         DateTime?         @db.Date
+  account_id       String?           @db.Uuid
+  created_at       DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime          @default(now()) @db.Timestamptz(6)
+  savings_entries  savings_entries[]
+  savings_accounts savings_accounts? @relation(fields: [account_id], references: [id], onUpdate: NoAction)
+  users            User              @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id], map: "idx_savings_goals_user")
+}
