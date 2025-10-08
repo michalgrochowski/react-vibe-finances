@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.scss";
 import Providers from "./providers";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import { Box } from "@mui/material";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,6 +19,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Vibe Finances",
   description: "Track your monthly salary, expenses, and savings",
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
 };
 
 export default function RootLayout({
@@ -26,10 +33,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+      <body className={`${geistSans.variable} ${geistMono.variable}`} style={{ margin: 0, padding: 0, height: "100vh", overflow: "hidden" }}>
         <Providers>
-          <Navbar />
-          {children}
+          <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
+            <Navbar />
+            <Box sx={{ flex: 1, overflow: "auto" }}>
+              {children}
+            </Box>
+            <Footer />
+          </Box>
         </Providers>
       </body>
     </html>

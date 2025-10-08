@@ -26,6 +26,10 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  ToggleButtonGroup,
+  ToggleButton,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -47,6 +51,8 @@ const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
 export default function MonthDashboard() {
   const { data: session } = useSession();
   const router = useRouter();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
   const [currentMonth, setCurrentMonth] = useState(() => {
     // Initialize to first day of current month
     const today = new Date();
@@ -85,6 +91,9 @@ export default function MonthDashboard() {
   const [editExpenseName, setEditExpenseName] = useState("");
   const [editExpenseAmount, setEditExpenseAmount] = useState("");
   const [editExpenseCategory, setEditExpenseCategory] = useState("");
+  
+  // Chart view toggle state
+  const [chartView, setChartView] = useState<'expenses' | 'categories'>('expenses');
 
   // Save budget month data when values change
   const saveBudgetMonthData = useCallback(async () => {
@@ -329,8 +338,8 @@ export default function MonthDashboard() {
   const savings = parseFloat(monthlySavings) || 0;
   const remaining = salary - totalExpenses - savings;
 
-  // Prepare data for the donut chart
-  const chartData = [
+  // Prepare chart data based on selected view
+  const chartDataByExpenses = [
     ...currentMonthExpenses.map((expense: any, index: number) => ({
       name: expense.name,
       value: expense.amount,
@@ -339,18 +348,61 @@ export default function MonthDashboard() {
     ...(remaining > 0 ? [{ name: "Remaining", value: remaining, color: "#E0E0E0" }] : [])
   ];
 
+  // Group expenses by category
+  const chartDataByCategories = (() => {
+    const categoryMap = new Map<string, { name: string; value: number; color: string }>();
+    
+    currentMonthExpenses.forEach((expense: any) => {
+      const existing = categoryMap.get(expense.categoryId);
+      if (existing) {
+        existing.value += expense.amount;
+      } else {
+        categoryMap.set(expense.categoryId, {
+          name: expense.category,
+          value: expense.amount,
+          color: COLORS[categoryMap.size % COLORS.length]
+        });
+      }
+    });
+    
+    const categoryData = Array.from(categoryMap.values());
+    return [
+      ...categoryData,
+      ...(remaining > 0 ? [{ name: "Remaining", value: remaining, color: "#E0E0E0" }] : [])
+    ];
+  })();
+
+  // Use the appropriate chart data based on the selected view
+  const chartData = chartView === 'expenses' ? chartDataByExpenses : chartDataByCategories;
+
   if (profileLoading || expensesLoading) {
     return (
-      <Container maxWidth="xl" sx={{ py: 4, display: "flex", justifyContent: "center" }}>
+      <Box
+        sx={{
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          px: { xs: 2, sm: 4, md: 6, lg: 8 },
+        }}
+      >
         <CircularProgress />
-      </Container>
+      </Box>
     );
   }
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
+    <Box
+      sx={{
+        height: "100%", // Use full available height
+        display: "flex",
+        flexDirection: "column",
+        px: { xs: 2, sm: 4, md: 6, lg: 8 }, // Responsive side margins
+        py: 2, // Reduced padding
+      }}
+    >
       {/* Month Navigation */}
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", mb: 4 }}>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", mb: 4, flexShrink: 0 }}>
         <IconButton 
           onClick={() => navigateMonth('prev')}
           disabled={!canNavigatePrev()}
@@ -367,10 +419,22 @@ export default function MonthDashboard() {
         </IconButton>
       </Box>
 
-      {/* Main Content - Three Column Layout */}
-      <Box sx={{ display: "flex", gap: 3, minHeight: 600 }}>
-        {/* Left Column - Salary & Savings (25%) */}
-        <Box sx={{ flex: "0 0 25%", minWidth: 0 }}>
+      {/* Main Content - Responsive Layout */}
+      <Box sx={{ 
+        display: "flex", 
+        gap: 3, 
+        flex: 1, 
+        minHeight: 0, 
+        overflow: { xs: "auto", lg: "hidden" }, // Allow scrolling on mobile, hidden on desktop
+        flexDirection: { xs: "column", lg: "row" }, // Stack on mobile, row on desktop
+        justifyContent: { xs: "flex-start", lg: "center" }
+      }}>
+        {/* Left Column - Salary & Savings */}
+        <Box sx={{ 
+          flex: { xs: "0 0 auto", lg: "0 0 20%" }, 
+          minWidth: 0,
+          width: { xs: "100%", lg: "auto" }
+        }}>
           <Card sx={{ height: "100%" }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -410,33 +474,55 @@ export default function MonthDashboard() {
                   />
                 </Box>
 
-                <Box sx={{ pt: 2, borderTop: 1, borderColor: "divider" }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Remaining: {remaining.toFixed(2)} PLN
-                  </Typography>
-                </Box>
               </Stack>
             </CardContent>
           </Card>
         </Box>
 
-        {/* Center Column - Donut Chart (50%) */}
-        <Box sx={{ flex: "0 0 50%", minWidth: 0 }}>
+        {/* Center Column - Donut Chart */}
+        <Box sx={{ 
+          flex: { xs: "0 0 auto", lg: "0 0 50%" }, 
+          minWidth: 0,
+          width: { xs: "100%", lg: "auto" },
+          height: { xs: "450px", lg: "auto" }
+        }}>
           <Card sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
             <CardContent sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
               <Typography variant="h6" gutterBottom align="center">
                 Expense Breakdown
               </Typography>
               
+              {/* Chart View Toggle */}
+              <Box sx={{ display: "flex", justifyContent: "center", mb: 2 }}>
+                <ToggleButtonGroup
+                  value={chartView}
+                  exclusive
+                  onChange={(_, newView) => {
+                    if (newView !== null) {
+                      setChartView(newView);
+                    }
+                  }}
+                  size="small"
+                  aria-label="chart view"
+                >
+                  <ToggleButton value="expenses" aria-label="by expenses">
+                    By Expenses
+                  </ToggleButton>
+                  <ToggleButton value="categories" aria-label="by categories">
+                    By Categories
+                  </ToggleButton>
+                </ToggleButtonGroup>
+              </Box>
+              
               <Box sx={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <ResponsiveContainer width="100%" height={400}>
+                <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
                       data={chartData}
                       cx="50%"
                       cy="50%"
-                      innerRadius={60}
-                      outerRadius={120}
+                      innerRadius={isMobile ? 50 : 200}
+                      outerRadius={isMobile ? 100 : 400}
                       paddingAngle={5}
                       dataKey="value"
                     >
@@ -446,6 +532,33 @@ export default function MonthDashboard() {
                     </Pie>
                     <Tooltip formatter={(value) => [`${value} PLN`, 'Amount']} />
                     <Legend />
+                    {/* Center text showing remaining amount */}
+                    <text 
+                      x="50%" 
+                      y={isMobile ? '35%' : '45%'}
+                      textAnchor="middle" 
+                      dominantBaseline="middle"
+                      style={{
+                        fontSize: isMobile ? '12px' : '24px',
+                        fontWeight: 'bold',
+                        fill: theme.palette.text.primary
+                      }}
+                    >
+                      Remaining
+                    </text>
+                    <text 
+                      x="50%" 
+                      y={isMobile ? '40%' : '55%'}
+                      textAnchor="middle" 
+                      dominantBaseline="middle"
+                      style={{
+                        fontSize: isMobile ? '12px' : '20px',
+                        fontWeight: '600',
+                        fill: theme.palette.text.secondary
+                      }}
+                    >
+                      {remaining.toFixed(2)} PLN
+                    </text>
                   </PieChart>
                 </ResponsiveContainer>
               </Box>
@@ -453,10 +566,16 @@ export default function MonthDashboard() {
           </Card>
         </Box>
 
-        {/* Right Column - Expenses List (25%) */}
-        <Box sx={{ flex: "0 0 25%", minWidth: 0 }}>
-          <Card sx={{ height: "100%" }}>
-            <CardContent>
+        {/* Right Column - Expenses List */}
+        <Box sx={{ 
+          flex: { xs: "0 0 auto", lg: "0 0 20%" }, 
+          minWidth: 0,
+          width: { xs: "100%", lg: "auto" },
+          height: { xs: "400px", lg: "auto" },
+          mt: { xs: 3, lg: 0 } // Add top margin on mobile
+        }}>
+          <Card sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+            <CardContent sx={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
               <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
                 <Typography variant="h6">
                   Expenses
@@ -490,7 +609,7 @@ export default function MonthDashboard() {
                 </Box>
               </Box>
 
-              <List sx={{ maxHeight: 400, overflow: "auto" }}>
+              <List sx={{ flex: 1, overflow: "auto", minHeight: 0, maxHeight: "calc(100vh - 200px)" }}>
                 {currentMonthExpenses.map((expense: any) => (
                   <ListItem
                     key={expense.id}
@@ -514,10 +633,10 @@ export default function MonthDashboard() {
                           size="small"
                           onClick={() => handleDeleteExpense(expense.id)}
                           sx={{ 
-                            color: 'error.main',
+                            color: 'error.light',
                             '&:hover': {
-                              backgroundColor: 'error.light',
-                              color: 'error.contrastText',
+                              backgroundColor: 'error.lighter',
+                              color: 'error.main',
                             }
                           }}
                         >
@@ -649,6 +768,6 @@ export default function MonthDashboard() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Container>
+    </Box>
   );
 }

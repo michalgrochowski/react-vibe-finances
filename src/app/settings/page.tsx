@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { alpha } from "@mui/material/styles";
 import {
   Box,
   Container,
@@ -230,31 +231,62 @@ export default function SettingsPage() {
 
   if (profileLoading || expensesLoading || categoriesLoading) {
     return (
-      <Container maxWidth="md" sx={{ py: 4, display: "flex", justifyContent: "center" }}>
+      <Box
+        sx={{
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          px: { xs: 2, sm: 4, md: 6, lg: 8 },
+        }}
+      >
         <CircularProgress />
-      </Container>
+      </Box>
     );
   }
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Container maxWidth="md" sx={{ py: 4 }}>
+      <Box
+        sx={{
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          px: { xs: 2, sm: 4, md: 6, lg: 8 },
+          py: 4,
+        }}
+      >
+        <Container maxWidth="lg" sx={{ px: 0, flex: 1, display: "flex", flexDirection: "column" }}>
         <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 4 }}>
           Settings
         </Typography>
 
-        <Stack spacing={3}>
+        <Stack spacing={2} sx={{ flex: 1 }}>
           {/* Theme Toggle */}
           <Card>
             <CardContent>
               <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <Typography variant="h6">Theme:</Typography>
+                <Typography variant="h6" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>Theme:</Typography>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                   <Typography>Light</Typography>
                   <Switch
                     checked={mode === "dark"}
                     onChange={toggleMode}
                     inputProps={{ "aria-label": "theme toggle" }}
+                    sx={{
+                      '& .MuiSwitch-thumb': {
+                        backgroundColor: mode === 'dark' ? '#fff' : '#666',
+                      },
+                      '& .MuiSwitch-track': {
+                        backgroundColor: `${mode === 'dark' ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)'} !important`,
+                      },
+                      '&.Mui-checked .MuiSwitch-track': {
+                        backgroundColor: `${mode === 'dark' ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.8)'} !important`,
+                      },
+                      '&.Mui-checked + .MuiSwitch-track': {
+                        backgroundColor: `${mode === 'dark' ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.8)'} !important`,
+                      },
+                    }}
                   />
                   <Typography>Dark</Typography>
                 </Box>
@@ -266,7 +298,7 @@ export default function SettingsPage() {
           <Card>
             <CardContent>
               <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                <Typography variant="h6" sx={{ minWidth: 150 }}>
+                <Typography variant="h6" sx={{ minWidth: { xs: 150, sm: 200 }, fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                   Monthly salary:
                 </Typography>
                 <TextField
@@ -287,7 +319,7 @@ export default function SettingsPage() {
           <Card>
             <CardContent>
               <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                <Typography variant="h6" sx={{ minWidth: 150 }}>
+                <Typography variant="h6" sx={{ minWidth: { xs: 150, sm: 200 }, fontSize: { xs: '0.9rem', sm: '1.25rem' } }}>
                   First tracked month:
                 </Typography>
                 {mounted ? (
@@ -336,16 +368,35 @@ export default function SettingsPage() {
                 </IconButton>
               </Box>
 
-              <List>
+              <List sx={{ maxHeight: 200, overflow: "auto" }}>
                 {categories.map((category: any) => (
                   <ListItem
                     key={category.id}
                     secondaryAction={
                       <Box>
-                        <IconButton edge="end" onClick={() => handleEditCategory(category)}>
+                        <IconButton 
+                          edge="end" 
+                          onClick={() => handleEditCategory(category)}
+                          sx={{
+                            color: 'text.primary',
+                            '&:hover': {
+                              backgroundColor: 'action.hover',
+                            }
+                          }}
+                        >
                           <EditIcon />
                         </IconButton>
-                        <IconButton edge="end" onClick={() => handleDeleteCategory(category.id)}>
+                        <IconButton 
+                          edge="end" 
+                          onClick={() => handleDeleteCategory(category.id)}
+                          sx={{
+                            color: 'error.light',
+                            '&:hover': {
+                              backgroundColor: 'error.lighter',
+                              color: 'error.main',
+                            }
+                          }}
+                        >
                           <DeleteIcon />
                         </IconButton>
                       </Box>
@@ -387,16 +438,35 @@ export default function SettingsPage() {
                 </IconButton>
               </Box>
 
-              <List>
+              <List sx={{ maxHeight: 250, overflow: "auto" }}>
                 {recurringExpenses.map((expense) => (
                   <ListItem
                     key={expense.id}
                     secondaryAction={
                       <Box>
-                        <IconButton edge="end" onClick={() => handleEditExpense(expense)}>
+                        <IconButton 
+                          edge="end" 
+                          onClick={() => handleEditExpense(expense)}
+                          sx={{
+                            color: 'text.primary',
+                            '&:hover': {
+                              backgroundColor: 'action.hover',
+                            }
+                          }}
+                        >
                           <EditIcon />
                         </IconButton>
-                        <IconButton edge="end" onClick={() => handleDeleteExpense(expense.id)}>
+                        <IconButton 
+                          edge="end" 
+                          onClick={() => handleDeleteExpense(expense.id)}
+                          sx={{
+                            color: 'error.light',
+                            '&:hover': {
+                              backgroundColor: 'error.lighter',
+                              color: 'error.main',
+                            }
+                          }}
+                        >
                           <DeleteIcon />
                         </IconButton>
                       </Box>
@@ -419,8 +489,18 @@ export default function SettingsPage() {
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <Button
               variant="outlined"
+              color="primary"
               fullWidth
               onClick={() => setShowChangePassword(true)}
+              sx={{
+                borderColor: 'primary.main',
+                color: 'text.primary',
+                borderWidth: 2,
+                '&:hover': {
+                  borderWidth: 2,
+                  backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.4),
+                }
+              }}
             >
               Change password
             </Button>
@@ -557,7 +637,8 @@ export default function SettingsPage() {
             </Button>
           </DialogActions>
         </Dialog>
-      </Container>
+        </Container>
+      </Box>
     </LocalizationProvider>
   );
 }
