@@ -2,22 +2,22 @@ import { createTheme } from "@mui/material/styles";
 import type { PaletteMode, Theme } from "@mui/material";
 
 const lightBackground = {
-  default: "#EEE8DE", // warm parchment from dobrywebdev
+  default: "#f4f0e6", // warm parchment from dobrywebdev
   paper: "#F6F2EA",
 };
 
 const darkBackground = {
-  default: "#262B34", // deep slate from dobrywebdev
+  default: "#272a33", // deep slate from dobrywebdev
   paper: "#2E3440",
 };
 
 const lightText = {
-  primary: "#232323", // dark text for light theme
+  primary: "#333", // dark text for light theme
   secondary: "#494949",
 };
 
 const darkText = {
-  primary: "#E5E2DA", // light text for dark theme
+  primary: "#ccc", // light text for dark theme
   secondary: "#CFCABF",
 };
 
@@ -69,9 +69,6 @@ export function getTheme(mode: PaletteMode): Theme {
             flex: 1,
             display: "flex",
             flexDirection: "column",
-            border: `8px solid ${isLight ? lightBorder : darkBorder}`,
-            margin: "8px",
-            borderRadius: "4px",
             overflow: "hidden",
             minHeight: "calc(100vh - 16px)",
             backgroundColor: isLight ? lightBackground.paper : darkBackground.paper,
@@ -81,15 +78,13 @@ export function getTheme(mode: PaletteMode): Theme {
             display: "flex",
             flexDirection: "column",
             backgroundColor: isLight ? lightBackground.paper : darkBackground.paper,
-          },
+          }
         },
       },
       MuiPaper: {
         defaultProps: { elevation: 0 },
         styleOverrides: {
           root: {
-            borderRadius: 12,
-            border: `1px solid ${isLight ? lightBorder : darkBorder}`,
           },
         },
       },
@@ -97,7 +92,6 @@ export function getTheme(mode: PaletteMode): Theme {
         styleOverrides: {
           root: {
             backgroundImage: "none",
-            borderBottom: `1px solid ${isLight ? lightBorder : darkBorder}`,
           },
         },
       },
@@ -105,9 +99,17 @@ export function getTheme(mode: PaletteMode): Theme {
         styleOverrides: {
           root: {
             borderRadius: 16,
+            paddingBottom: 0,
           },
         },
       },
+      MuiCardContent: {
+        styleOverrides: {
+          root: {
+            paddingBottom: 0,
+          },
+        },
+      }
     },
   });
 }

@@ -11,6 +11,7 @@ export interface Expense {
   amountCents: bigint;
   categoryId: CategoryId;
   origin: "recurring" | "manual";
+  isPaid: boolean;
   createdAt: string;
   updatedAt: string;
 }

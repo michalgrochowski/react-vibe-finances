@@ -45,7 +45,7 @@ export const useUpdateExpense = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: { name?: string; amountCents?: number; categoryId?: string } }) => {
+    mutationFn: async ({ id, data }: { id: string; data: { name?: string; amountCents?: number; categoryId?: string; isPaid?: boolean } }) => {
       const response = await fetch(`/api/expenses/${id}`, {
         method: "PATCH",
         headers: {

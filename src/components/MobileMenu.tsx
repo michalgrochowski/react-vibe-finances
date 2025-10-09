@@ -19,6 +19,7 @@ import {
   Dashboard as DashboardIcon,
   Settings as SettingsIcon,
   Logout as LogoutIcon,
+  CalendarMonth as CalendarMonthIcon,
 } from "@mui/icons-material";
 import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -50,6 +51,11 @@ export default function MobileMenu() {
       href: "/dashboard",
     },
     {
+      text: "Year Summary",
+      icon: <CalendarMonthIcon />,
+      href: "/year-summary",
+    },
+    {
       text: "Settings",
       icon: <SettingsIcon />,
       href: "/settings",
@@ -65,7 +71,8 @@ export default function MobileMenu() {
         edge="end"
         onClick={toggleDrawer(true)}
         sx={{ 
-          display: { xs: "block", md: "none" }
+          display: { xs: "block", md: "none" },
+          marginLeft: "auto"
         }}
       >
         <MenuIcon />

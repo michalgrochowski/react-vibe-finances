@@ -38,6 +38,8 @@ import {
   ArrowBackIos as ArrowBackIosIcon,
   ArrowForwardIos as ArrowForwardIosIcon,
   Refresh as RefreshIcon,
+  Check as CheckIcon,
+  Close as CloseIcon,
 } from "@mui/icons-material";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import { useProfile } from "@/lib/hooks/useProfile";
@@ -260,6 +262,20 @@ export default function MonthDashboard() {
     }
   };
 
+  // Handle toggling expense paid status
+  const handleTogglePaid = async (expenseId: string, isPaid: boolean) => {
+    try {
+      await updateExpense.mutateAsync({
+        id: expenseId,
+        data: {
+          isPaid: isPaid,
+        }
+      });
+    } catch (error) {
+      console.error("Failed to update expense paid status:", error);
+    }
+  };
+
   // Handle syncing recurring expenses for current month
   const handleSyncRecurringExpenses = async () => {
     if (!budgetMonth || !recurringExpenses.length) return;
@@ -330,6 +346,7 @@ export default function MonthDashboard() {
     amount: Number(expense.amountCents) / 100,
     category: expense.category.name,
     categoryId: expense.categoryId,
+    isPaid: expense.isPaid || false,
     type: 'expense' // All expenses are now treated the same way
   }));
 
@@ -429,19 +446,23 @@ export default function MonthDashboard() {
         flexDirection: { xs: "column", lg: "row" }, // Stack on mobile, row on desktop
         justifyContent: { xs: "flex-start", lg: "center" }
       }}>
-        {/* Left Column - Salary & Savings */}
+        {/* Left Column - This Month & Expenses List */}
         <Box sx={{ 
-          flex: { xs: "0 0 auto", lg: "0 0 20%" }, 
+          flex: { xs: "0 0 auto", lg: "0 0 25%" }, 
           minWidth: 0,
-          width: { xs: "100%", lg: "auto" }
+          width: { xs: "100%", lg: "auto" },
+          display: "flex",
+          flexDirection: "column",
+          gap: 3
         }}>
-          <Card sx={{ height: "100%" }}>
+          {/* This Month Card */}
+          <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 This Month
               </Typography>
               
-              <Stack spacing={3}>
+              <Stack spacing={2}>
                 <Box>
                   <Typography variant="body2" color="text.secondary" gutterBottom>
                     Salary:
@@ -473,15 +494,138 @@ export default function MonthDashboard() {
                     inputProps={{ min: 0, max: 999999, step: 0.01 }}
                   />
                 </Box>
-
               </Stack>
+            </CardContent>
+          </Card>
+
+          {/* Expenses List Card */}
+          <Card sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+            <CardContent sx={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
+              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
+                <Typography variant="h6">
+                  Expenses
+                </Typography>
+                <Box sx={{ display: "flex", gap: 1 }}>
+                  <IconButton 
+                    size="small"
+                    onClick={handleSyncRecurringExpenses}
+                    title="Sync recurring expenses for this month"
+                    sx={{ 
+                      color: 'text.primary',
+                      '&:hover': {
+                        backgroundColor: 'action.hover',
+                      }
+                    }}
+                  >
+                    <RefreshIcon />
+                  </IconButton>
+                  <IconButton 
+                    size="small"
+                    onClick={() => setShowAddExpense(true)}
+                    sx={{ 
+                      color: 'text.primary',
+                      '&:hover': {
+                        backgroundColor: 'action.hover',
+                      }
+                    }}
+                  >
+                    <AddIcon />
+                  </IconButton>
+                </Box>
+              </Box>
+
+              <List sx={{ flex: 1, overflow: "auto", minHeight: 0 }}>
+                {currentMonthExpenses.map((expense: any) => (
+                  <ListItem
+                    key={expense.id}
+                    secondaryAction={
+                      <Box sx={{ display: "flex", gap: 0.5 }}>
+                        <IconButton 
+                          edge="end" 
+                          size="small"
+                          onClick={() => handleTogglePaid(expense.id, !expense.isPaid)}
+                          sx={{ 
+                            color: expense.isPaid ? 'text.primary' : 'success.main',
+                            '&:hover': {
+                              backgroundColor: expense.isPaid ? 'action.hover' : 'success.lighter',
+                            }
+                          }}
+                          title={expense.isPaid ? "Mark as unpaid" : "Mark as paid"}
+                        >
+                          {expense.isPaid ? <CloseIcon /> : <CheckIcon />}
+                        </IconButton>
+                        <IconButton 
+                          edge="end" 
+                          size="small"
+                          onClick={() => handleEditExpense(expense)}
+                          sx={{ 
+                            color: 'text.primary',
+                            '&:hover': {
+                              backgroundColor: 'action.hover',
+                            }
+                          }}
+                        >
+                          <EditIcon />
+                        </IconButton>
+                        <IconButton 
+                          edge="end" 
+                          size="small"
+                          onClick={() => handleDeleteExpense(expense.id)}
+                          sx={{ 
+                            color: 'error.light',
+                            '&:hover': {
+                              backgroundColor: 'error.lighter',
+                              color: 'error.main',
+                            }
+                          }}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Box>
+                    }
+                    sx={{ 
+                      px: 0,
+                      backgroundColor: expense.isPaid ? 'rgba(76, 175, 80, 0.08)' : 'transparent',
+                      borderRadius: 1,
+                      mb: 0.5,
+                    }}
+                  >
+                    <ListItemText
+                      primary={
+                        <Typography 
+                          variant="body1" 
+                          sx={{ 
+                            color: expense.isPaid ? 'success.main' : 'text.primary',
+                            fontWeight: expense.isPaid ? 500 : 400,
+                          }}
+                        >
+                          {expense.name}
+                        </Typography>
+                      }
+                      secondary={
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                          <Typography 
+                            variant="body2" 
+                            sx={{ 
+                              color: expense.isPaid ? 'success.main' : 'text.secondary',
+                            }}
+                          >
+                            {expense.amount.toFixed(2)} PLN
+                          </Typography>
+                          <Chip label={expense.category} size="small" variant="outlined" />
+                        </Box>
+                      }
+                    />
+                  </ListItem>
+                ))}
+              </List>
             </CardContent>
           </Card>
         </Box>
 
-        {/* Center Column - Donut Chart */}
+        {/* Right Column - Donut Chart (75% width) */}
         <Box sx={{ 
-          flex: { xs: "0 0 auto", lg: "0 0 50%" }, 
+          flex: { xs: "0 0 auto", lg: "0 0 75%" }, 
           minWidth: 0,
           width: { xs: "100%", lg: "auto" },
           height: { xs: "450px", lg: "auto" }
@@ -562,104 +706,6 @@ export default function MonthDashboard() {
                   </PieChart>
                 </ResponsiveContainer>
               </Box>
-            </CardContent>
-          </Card>
-        </Box>
-
-        {/* Right Column - Expenses List */}
-        <Box sx={{ 
-          flex: { xs: "0 0 auto", lg: "0 0 20%" }, 
-          minWidth: 0,
-          width: { xs: "100%", lg: "auto" },
-          height: { xs: "400px", lg: "auto" },
-          mt: { xs: 3, lg: 0 } // Add top margin on mobile
-        }}>
-          <Card sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-            <CardContent sx={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
-              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
-                <Typography variant="h6">
-                  Expenses
-                </Typography>
-                <Box sx={{ display: "flex", gap: 1 }}>
-                  <IconButton 
-                    size="small"
-                    onClick={handleSyncRecurringExpenses}
-                    title="Sync recurring expenses for this month"
-                    sx={{ 
-                      color: 'text.primary',
-                      '&:hover': {
-                        backgroundColor: 'action.hover',
-                      }
-                    }}
-                  >
-                    <RefreshIcon />
-                  </IconButton>
-                  <IconButton 
-                    size="small"
-                    onClick={() => setShowAddExpense(true)}
-                    sx={{ 
-                      color: 'text.primary',
-                      '&:hover': {
-                        backgroundColor: 'action.hover',
-                      }
-                    }}
-                  >
-                    <AddIcon />
-                  </IconButton>
-                </Box>
-              </Box>
-
-              <List sx={{ flex: 1, overflow: "auto", minHeight: 0, maxHeight: "calc(100vh - 200px)" }}>
-                {currentMonthExpenses.map((expense: any) => (
-                  <ListItem
-                    key={expense.id}
-                    secondaryAction={
-                      <Box sx={{ display: "flex", gap: 0.5 }}>
-                        <IconButton 
-                          edge="end" 
-                          size="small"
-                          onClick={() => handleEditExpense(expense)}
-                          sx={{ 
-                            color: 'text.primary',
-                            '&:hover': {
-                              backgroundColor: 'action.hover',
-                            }
-                          }}
-                        >
-                          <EditIcon />
-                        </IconButton>
-                        <IconButton 
-                          edge="end" 
-                          size="small"
-                          onClick={() => handleDeleteExpense(expense.id)}
-                          sx={{ 
-                            color: 'error.light',
-                            '&:hover': {
-                              backgroundColor: 'error.lighter',
-                              color: 'error.main',
-                            }
-                          }}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Box>
-                    }
-                    sx={{ px: 0 }}
-                  >
-                    <ListItemText
-                      primary={expense.name}
-                      secondary={
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                          <Typography variant="body2" color="text.secondary">
-                            {expense.amount.toFixed(2)} PLN
-                          </Typography>
-                          <Chip label={expense.category} size="small" variant="outlined" />
-                        </Box>
-                      }
-                    />
-                  </ListItem>
-                ))}
-              </List>
             </CardContent>
           </Card>
         </Box>

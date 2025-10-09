@@ -8,6 +8,7 @@ const updateExpenseSchema = z.object({
   name: z.string().min(1).max(70).optional(),
   amountCents: z.number().int().min(0).max(99999900).optional(), // Max 999,999
   categoryId: z.string().uuid().optional(),
+  isPaid: z.boolean().optional(),
 });
 
 export async function PATCH(
@@ -22,7 +23,7 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await request.json();
-    const { name, amountCents, categoryId } = updateExpenseSchema.parse(body);
+    const { name, amountCents, categoryId, isPaid } = updateExpenseSchema.parse(body);
 
     // Check if expense exists and belongs to user
     const existingExpense = await prisma.expense.findFirst({
@@ -57,6 +58,7 @@ export async function PATCH(
         name: name,
         amountCents: amountCents !== undefined ? BigInt(amountCents) : undefined,
         categoryId: categoryId,
+        isPaid: isPaid,
       },
       include: {
         category: true,

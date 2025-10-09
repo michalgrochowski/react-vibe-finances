@@ -1,7 +1,7 @@
 "use client";
 
 import { AppBar, Toolbar, Typography, Button, Box } from "@mui/material";
-import { Settings as SettingsIcon, Logout as LogoutIcon, Dashboard as DashboardIcon } from "@mui/icons-material";
+import { Settings as SettingsIcon, Logout as LogoutIcon, Dashboard as DashboardIcon, CalendarMonth as CalendarMonthIcon } from "@mui/icons-material";
 import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
@@ -22,7 +22,7 @@ export default function Navbar() {
 
   return (
     <AppBar position="static" color="primary" elevation={0}>
-      <Toolbar sx={{ px: 3 }}>
+      <Toolbar sx={{ px: 3, width: "100%" }}>
         <Box
           component={Link}
           href="/dashboard"
@@ -33,7 +33,7 @@ export default function Navbar() {
             textDecoration: "none",
             color: "inherit",
             cursor: "pointer",
-            flexGrow: 1,
+            width: "10%"
           }}
         >
           <Box
@@ -58,7 +58,7 @@ export default function Navbar() {
         </Box>
 
         {/* Desktop Navigation */}
-        <Box sx={{ display: { xs: "none", md: "flex" }, alignItems: "center", gap: 1 }}>
+        <Box sx={{ display: { xs: "none", md: "flex" }, alignItems: "center", gap: 1, marginRight: "auto", marginLeft: "auto" }}>
           <Button
             color="inherit"
             startIcon={<DashboardIcon />}
@@ -70,14 +70,24 @@ export default function Navbar() {
 
           <Button
             color="inherit"
+            startIcon={<CalendarMonthIcon />}
+            component={Link}
+            href="/year-summary"
+          >
+            Year Summary
+          </Button>
+
+          <Button
+            color="inherit"
             startIcon={<SettingsIcon />}
             component={Link}
             href="/settings"
           >
             Settings
           </Button>
-          
-          <Button
+        </Box>
+        <Box sx={{ display: { xs: "none", md: "flex", alignItems: "flex-end", justifyContent: "flex-end" }, width: "10%" }}>
+        <Button
             color="inherit"
             startIcon={<LogoutIcon />}
             onClick={handleLogout}
@@ -85,7 +95,6 @@ export default function Navbar() {
             Log out
           </Button>
         </Box>
-
         {/* Mobile Menu */}
         <MobileMenu />
       </Toolbar>

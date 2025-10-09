@@ -79,6 +79,7 @@ model Expense {
   amountCents BigInt      @map("amount_cents")
   categoryId  String      @map("category_id") @db.Uuid
   origin      String      @default("manual")
+  isPaid      Boolean     @default(false) @map("is_paid")
   createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   category    Category    @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
