@@ -15,6 +15,14 @@ export default function Navbar() {
     await signOut({ callbackUrl: "/auth/login" });
   };
 
+  // Generate current month dashboard URL
+  const getCurrentMonthUrl = () => {
+    const now = new Date();
+    const month = now.getMonth() + 1; // JavaScript months are 0-indexed
+    const year = now.getFullYear();
+    return `/dashboard?month=${month}&year=${year}`;
+  };
+
   // Don't show navbar on auth pages
   if (!session) {
     return null;
@@ -25,7 +33,7 @@ export default function Navbar() {
       <Toolbar sx={{ px: 3, width: "100%" }}>
         <Box
           component={Link}
-          href="/dashboard"
+          href={getCurrentMonthUrl()}
           sx={{
             display: "flex",
             alignItems: "center",
@@ -63,7 +71,7 @@ export default function Navbar() {
             color="inherit"
             startIcon={<DashboardIcon />}
             component={Link}
-            href="/dashboard"
+            href={getCurrentMonthUrl()}
           >
             Dashboard
           </Button>

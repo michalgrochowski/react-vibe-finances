@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Box,
   Container,
@@ -53,10 +53,19 @@ const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
 export default function MonthDashboard() {
   const { data: session } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
   const [currentMonth, setCurrentMonth] = useState(() => {
-    // Initialize to first day of current month
+    const monthParam = searchParams.get('month');
+    const yearParam = searchParams.get('year');
+    
+    if (monthParam && yearParam) {
+      const month = parseInt(monthParam) - 1; // JavaScript months are 0-indexed
+      const year = parseInt(yearParam);
+      return new Date(year, month, 1);
+    }
+    
     const today = new Date();
     return new Date(today.getFullYear(), today.getMonth(), 1);
   });
@@ -83,6 +92,19 @@ export default function MonthDashboard() {
   
   // Add expense dialog state
   const [showAddExpense, setShowAddExpense] = useState(false);
+
+  // Update current month when URL parameters change
+  useEffect(() => {
+    const monthParam = searchParams.get('month');
+    const yearParam = searchParams.get('year');
+    
+    if (monthParam && yearParam) {
+      const month = parseInt(monthParam) - 1; // JavaScript months are 0-indexed
+      const year = parseInt(yearParam);
+      const newMonth = new Date(year, month, 1);
+      setCurrentMonth(newMonth);
+    }
+  }, [searchParams]);
   const [newExpenseName, setNewExpenseName] = useState("");
   const [newExpenseAmount, setNewExpenseAmount] = useState("");
   const [newExpenseCategory, setNewExpenseCategory] = useState("");

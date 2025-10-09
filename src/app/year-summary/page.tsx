@@ -20,9 +20,12 @@ import {
   PieChart as PieChartIcon
 } from "@mui/icons-material";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { useProfile } from "@/lib/hooks/useProfile";
 import { useYearSummary } from "@/lib/hooks/useYearSummary";
+import { useCreateBudgetMonth } from "@/lib/hooks/useBudgetMonths";
 import { BarChart } from '@mui/x-charts/BarChart';
+import { PieChart } from '@mui/x-charts/PieChart';
 
 const months = [
   "January", "February", "March", "April", "May", "June",
@@ -34,6 +37,7 @@ const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82CA9D"
 
 export default function YearSummary() {
   const { data: session } = useSession();
+  const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
@@ -42,6 +46,7 @@ export default function YearSummary() {
 
   const { data: profile } = useProfile();
   const { data: yearSummary, isLoading } = useYearSummary(currentYear);
+  const createBudgetMonth = useCreateBudgetMonth();
 
   useEffect(() => {
     setIsMounted(true);
@@ -267,20 +272,46 @@ export default function YearSummary() {
         }}>
           <Card sx={{ height: "100%", borderRadius: 3 }}>
             <CardContent sx={{ height: "100%", p: 3 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, textAlign: "center" }}>
+                Monthly Overview - {currentYear}
+              </Typography>
               <Box sx={{ 
                 display: "grid", 
-                gridTemplateColumns: "repeat(4, 1fr)", 
-                gridTemplateRows: "repeat(3, 1fr)",
+                gridTemplateColumns: { xs: "repeat(2, 1fr)", sm: "repeat(3, 1fr)", md: "repeat(4, 1fr)" },
+                gridTemplateRows: { xs: "repeat(6, 1fr)", sm: "repeat(4, 1fr)", md: "repeat(3, 1fr)" },
                 gap: 2,
-                height: "100%"
+                width: "100%",
+                height: "calc(100% - 60px)", // Account for title height
+                minHeight: "300px"
               }}>
                 {months.map((month, index) => {
                   const monthData = yearSummary?.monthlyData?.[index];
                   const hasData = monthData?.hasData || false;
+                  const monthNumber = index + 1;
+                  
+                  const handleMonthClick = async () => {
+                    // If month doesn't have data, create a new budget month first
+                    if (!hasData) {
+                      try {
+                        await createBudgetMonth.mutateAsync({
+                          month: `${currentYear}-${monthNumber.toString().padStart(2, '0')}`,
+                          salaryOverrideCents: 0,
+                          savingsCents: 0,
+                        });
+                      } catch (error) {
+                        console.error('Failed to create budget month:', error);
+                        return;
+                      }
+                    }
+                    
+                    // Navigate to dashboard with the specific month/year
+                    router.push(`/dashboard?month=${monthNumber}&year=${currentYear}`);
+                  };
                   
                   return (
                     <Box
                       key={month}
+                      onClick={handleMonthClick}
                       sx={{
                         border: `2px solid ${hasData ? theme.palette.primary.main : theme.palette.divider}`,
                         borderRadius: 3,
@@ -290,23 +321,60 @@ export default function YearSummary() {
                         justifyContent: "center",
                         cursor: "pointer",
                         transition: "all 0.2s ease-in-out",
-                        backgroundColor: hasData ? theme.palette.background.paper : "transparent",
+                        backgroundColor: hasData 
+                          ? theme.palette.background.paper 
+                          : `rgba(244, 67, 54, 0.2)`, // Light red with 0.2 opacity
                         '&:hover': {
-                          backgroundColor: theme.palette.action.hover,
+                          backgroundColor: hasData 
+                            ? theme.palette.action.hover 
+                            : `rgba(244, 67, 54, 0.3)`, // Slightly darker red on hover
                           borderColor: theme.palette.primary.main,
                         }
                       }}
                     >
-                      {hasData ? (
-                        <>
-                          <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-                            {month}
-                          </Typography>
-                          <PieChartIcon sx={{ color: "text.secondary" }} />
-                        </>
-                      ) : (
-                        <PieChartIcon sx={{ color: "text.disabled", opacity: 0.3 }} />
-                      )}
+                        <Typography variant="body2" sx={{ 
+                          fontWeight: 600, 
+                          mb: 1, 
+                          fontSize: { xs: '0.9rem', sm: '1rem', md: '1.2rem' }
+                        }}>
+                          {month}
+                        </Typography>
+                        {hasData && monthData && isMounted ? (
+                          <PieChart
+                            series={[
+                              {
+                                data: [
+                                  ...(monthData.expenses || []).map((expense: any, idx: number) => ({
+                                    id: idx,
+                                    label: expense.name,
+                                    value: expense.amount,
+                                  })),
+                                  ...(monthData.remaining > 0 ? [{
+                                    id: -1,
+                                    label: 'Remaining',
+                                    value: monthData.remaining,
+                                  }] : [])
+                                ],
+                                innerRadius: isMobile ? 20 : 48,
+                                outerRadius: isMobile ? 40 : 96,
+                                paddingAngle: 1,
+                              },
+                            ]}
+                            width={isMobile ? 80 : 200}
+                            height={isMobile ? 80 : 200}
+                            sx={{
+                              '& .MuiChartsLegend-root': {
+                                display: 'none !important',
+                              },
+                            }}
+                          />
+                        ) : (
+                          <PieChartIcon sx={{ 
+                            color: "text.disabled", 
+                            opacity: 0.3, 
+                            fontSize: { xs: 20, sm: 24, md: 28 }
+                          }} />
+                        )}
                     </Box>
                   );
                 })}

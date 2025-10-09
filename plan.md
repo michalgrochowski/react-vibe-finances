@@ -395,40 +395,89 @@ model Category {
   - Backend endpoints pending implementation
 - [ ] H7. Export data (CSV/JSON) – optional.
 
-### I. Year view (later milestone)
-- [ ] I1. Grid of 12 months with sparkline or mini donuts.
-- [ ] I2. Quick jump to a month on click.
+### I. Year view
+- [x] I1. Grid of 12 months with sparkline or mini donuts.
+- [x] I2. Quick jump to a month on click.
+- [x] I3. Year navigation with previous/next year buttons.
+- [x] I4. Limit year navigation to firstTrackedYear (user's first tracked month).
+- [x] I5. Summary section with horizontal bar chart showing yearly expenses/categories.
+- [x] I6. Toggle between "By Expenses" and "By Categories" chart views.
+- [x] I7. Group expenses/categories below 500 PLN into "Other" category.
+- [x] I8. Responsive layout: stacked on mobile, side-by-side on desktop.
+- [x] I9. Month tiles with real data mini pie charts (no legends).
+- [x] I10. Auto-create budget months when clicking empty month tiles.
+- [x] I11. Visual styling for empty months (light red background with 0.2 opacity).
+- [x] I12. Month labels on tiles with responsive font sizing.
+- [x] I13. Total savings display for the selected year.
+- [x] I14. MUI Charts integration for both bar chart and mini pie charts.
+- [x] I15. Proper data fetching with React Query hooks.
+- [x] I16. Mobile-responsive grid: 2x6 on mobile, 3x4 on small, 4x3 on desktop.
 
-### J. Styling and polish
-- [x] J1. Implement desktop layout per wireframe:
+### J. Progressive Web App (PWA)
+- [ ] J1. Create web app manifest (manifest.json or manifest.webmanifest).
+  - App name, short name, description
+  - Icons in multiple sizes (192x192, 512x512, etc.)
+  - Theme color and background color
+  - Display mode (standalone/fullscreen)
+  - Start URL and scope
+- [ ] J2. Implement service worker for offline functionality.
+  - Cache static assets (JS, CSS, images)
+  - Cache API responses with appropriate strategies
+  - Handle offline fallbacks
+  - Background sync for mutations when back online
+- [ ] J3. Generate PWA icons for all device sizes.
+  - App icons for Android (192x192, 512x512)
+  - App icons for iOS (180x180, 167x167, 152x152, 120x120)
+  - Favicon and maskable icons
+- [ ] J4. Create offline fallback page.
+  - Display when user is offline and page not cached
+  - Show connection status
+  - Queue pending actions
+- [ ] J5. Add install prompt functionality.
+  - Detect if app is installable
+  - Show custom install prompt
+  - Handle beforeinstallprompt event
+  - Track installation analytics
+- [ ] J6. Configure Next.js for PWA support.
+  - Integrate next-pwa or similar plugin
+  - Configure caching strategies
+  - Set up workbox for advanced caching
+- [ ] J7. Add PWA meta tags and iOS-specific tags.
+  - Apple touch icon
+  - Apple mobile web app capable
+  - Status bar style
+  - Splash screens for iOS
+
+### K. Styling and polish
+- [x] K1. Implement desktop layout per wireframe:
   - Dashboard: 3-column layout (25% left, 50% center, 25% right)
   - Settings: centered single-column layout with cards
   - Responsive considerations pending
   - SCSS instead of plain CSS
-- [x] J2. Loading states with MUI CircularProgress components
+- [x] K2. Loading states with MUI CircularProgress components
   - Page-level loading for initial data fetch
   - Button-level loading for mutations
   - Empty-state handling pending
-- [x] J3. Theme-aware styling: light/dark mode support throughout
+- [x] K3. Theme-aware styling: light/dark mode support throughout
   - MUI theme integration
   - Consistent button and icon styling
   - Color contrast maintained
-- [ ] J4. Error pages: 404, 500, database connection errors, authentication errors (planned).
+- [ ] K4. Error pages: 404, 500, database connection errors, authentication errors (planned).
 
-### K. Testing
-- [ ] K1. Unit-test utilities (money, month math).
-- [ ] K2. Integration-test Server Actions with Prisma and a test PostgreSQL schema (or SQLite proxy for fast runs where compatible).
-- [ ] K3. e2e: sign up → set defaults → add recurring → open month → apply → add expense → check donut updates → add savings.
+### L. Testing
+- [ ] L1. Unit-test utilities (money, month math).
+- [ ] L2. Integration-test Server Actions with Prisma and a test PostgreSQL schema (or SQLite proxy for fast runs where compatible).
+- [ ] L3. e2e: sign up → set defaults → add recurring → open month → apply → add expense → check donut updates → add savings.
 
-### L. Performance and accessibility
-- [ ] L1. Memoize chart/derived data.
-- [ ] L2. Use `next/image` where relevant; code-split pages.
-- [ ] L3. a11y checks: labels, focus traps, contrast.
+### M. Performance and accessibility
+- [ ] M1. Memoize chart/derived data.
+- [ ] M2. Use `next/image` where relevant; code-split pages.
+- [ ] M3. a11y checks: labels, focus traps, contrast.
 
-### M. Deployment
-- [ ] M1. Deploy Next.js app; set env vars; connect to your PostgreSQL instance over SSL.
-- [ ] M2. Domain + HTTPS; run smoke tests.
-- [ ] M3. Set up PostgreSQL backups (e.g., `pg_dump` cron + offsite storage) and retention policy.
+### N. Deployment
+- [ ] N1. Deploy Next.js app; set env vars; connect to your PostgreSQL instance over SSL.
+- [ ] N2. Domain + HTTPS; run smoke tests.
+- [ ] N3. Set up PostgreSQL backups (e.g., `pg_dump` cron + offsite storage) and retention policy.
 
 ---
 

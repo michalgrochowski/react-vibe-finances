@@ -127,12 +127,26 @@ export async function GET(request: NextRequest) {
       const monthString = `${year}-${String(index + 1).padStart(2, '0')}`;
       const budgetMonth = budgetMonths.find(bm => bm.month === monthString);
       
+      const totalExpenses = budgetMonth ? 
+        budgetMonth.expenses.reduce((sum, expense) => sum + Number(expense.amountCents) / 100, 0) : 0;
+      
+      const salary = budgetMonth ? Number(budgetMonth.salaryOverrideCents) / 100 : 0;
+      const savings = budgetMonth ? Number(budgetMonth.savingsCents) / 100 : 0;
+      const remaining = salary - totalExpenses - savings;
+      
       return {
         month: new Date(year, index).toLocaleString('default', { month: 'long' }),
         monthNumber: index + 1,
         hasData: !!budgetMonth,
-        totalExpenses: budgetMonth ? 
-          budgetMonth.expenses.reduce((sum, expense) => sum + Number(expense.amountCents) / 100, 0) : 0
+        totalExpenses,
+        expenses: budgetMonth ? budgetMonth.expenses.map(expense => ({
+          id: expense.id,
+          name: expense.name,
+          amount: Number(expense.amountCents) / 100,
+          category: expense.category.name,
+          isPaid: false // TODO: Fix Prisma client generation
+        })) : [],
+        remaining: Math.max(0, remaining)
       };
     });
 

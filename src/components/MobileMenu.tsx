@@ -33,6 +33,14 @@ export default function MobileMenu() {
     await signOut({ callbackUrl: "/auth/login" });
   };
 
+  // Generate current month dashboard URL
+  const getCurrentMonthUrl = () => {
+    const now = new Date();
+    const month = now.getMonth() + 1; // JavaScript months are 0-indexed
+    const year = now.getFullYear();
+    return `/dashboard?month=${month}&year=${year}`;
+  };
+
   const toggleDrawer = (open: boolean) => (event: React.KeyboardEvent | React.MouseEvent) => {
     if (
       event.type === 'keydown' &&
@@ -48,7 +56,7 @@ export default function MobileMenu() {
     {
       text: "Dashboard",
       icon: <DashboardIcon />,
-      href: "/dashboard",
+      href: getCurrentMonthUrl(),
     },
     {
       text: "Year Summary",
