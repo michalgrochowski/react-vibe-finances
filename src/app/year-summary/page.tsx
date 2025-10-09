@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Box, 
   Typography, 
@@ -22,7 +22,7 @@ import {
 import { useSession } from "next-auth/react";
 import { useProfile } from "@/lib/hooks/useProfile";
 import { useYearSummary } from "@/lib/hooks/useYearSummary";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart } from '@mui/x-charts/BarChart';
 
 const months = [
   "January", "February", "March", "April", "May", "June",
@@ -37,13 +37,36 @@ export default function YearSummary() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
-  const [chartView, setChartView] = useState<'expenses' | 'categories'>('categories');
+  const [chartView, setChartView] = useState<'expenses' | 'categories'>('expenses');
+  const [isMounted, setIsMounted] = useState(false);
 
   const { data: profile } = useProfile();
   const { data: yearSummary, isLoading } = useYearSummary(currentYear);
 
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   if (!session) {
     return null;
+  }
+
+  if (!isMounted) {
+    return (
+      <Box
+        sx={{
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          px: { xs: 2, sm: 4, md: 6, lg: 8 },
+          py: 2,
+          alignItems: "center",
+          justifyContent: "center"
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
   }
 
   const firstTrackedYear = profile?.firstTrackedMonth ? 
@@ -139,24 +162,20 @@ export default function YearSummary() {
                     <CircularProgress />
                   </Box>
                 ) : (() => {
-                  const chartData = chartView === 'categories' ? yearSummary?.categoryData : yearSummary?.expenseData;
-                  const hasData = chartData && chartData.length > 0;
-                  
-                  // Debug: Log the data to console
-                  console.log('Year summary data:', yearSummary);
-                  console.log('Chart data:', chartData);
-                  console.log('Chart view:', chartView);
-                  console.log('Has data:', hasData);
-                  
-                  // Fallback test data if no real data
+                  // Always use test data for now to ensure chart works
                   const testData = [
                     { name: "Test Category 1", amount: 1000 },
                     { name: "Test Category 2", amount: 800 },
                     { name: "Test Category 3", amount: 600 }
                   ];
                   
+                  const chartData = chartView === 'categories' ? yearSummary?.categoryData : yearSummary?.expenseData;
+                  const hasData = chartData && Array.isArray(chartData) && chartData.length > 0;
+                  
                   const finalData = hasData ? chartData : testData;
-                  console.log('Final data for chart:', finalData);
+                  
+                  // Ensure finalData is always a valid array
+                  const safeData = Array.isArray(finalData) ? finalData : testData;
                   
                   return (
                     <Box>
@@ -167,40 +186,59 @@ export default function YearSummary() {
                           </Typography>
                         </Box>
                       )}
-                      <Box sx={{ height: 250, width: '100%' }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart 
-                            data={finalData}
+                      {isMounted && safeData.length > 0 ? (
+                        <Box sx={{ height: 300, width: '100%' }}>
+                          <BarChart
+                            height={300}
+                            dataset={safeData}
+                            series={[
+                              {
+                                id: 'amount',
+                                dataKey: 'amount',
+                                valueFormatter: (value: number | null) => `${value?.toFixed(2)} PLN`,
+                              },
+                            ]}
                             layout="horizontal"
-                            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                          >
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis 
-                              type="number"
-                              tick={{ fontSize: 12 }}
-                              tickFormatter={(value) => `${value} PLN`}
-                            />
-                            <YAxis 
-                              type="category"
-                              dataKey="name"
-                              tick={{ fontSize: 12 }}
-                              width={120}
-                            />
-                            <Tooltip 
-                              formatter={(value: number) => [`${value.toFixed(2)} PLN`, 'Amount']}
-                              labelFormatter={(label) => `${chartView === 'categories' ? 'Category' : 'Expense'}: ${label}`}
-                            />
-                            <Bar 
-                              dataKey="amount"
-                              fill="#8884d8"
-                            >
-                              {finalData.map((entry: any, index: number) => (
-                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                              ))}
-                            </Bar>
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </Box>
+                            xAxis={[
+                              {
+                                min: 0,
+                                valueFormatter: (value: number) => `${value.toFixed(0)} PLN`,
+                              },
+                            ]}
+                            yAxis={[
+                              {
+                                scaleType: 'band',
+                                dataKey: 'name',
+                                width: 80,
+                              },
+                            ]}
+                            margin={{ left: 20, right: 20, top: 20, bottom: 20 }}
+                            sx={{
+                              '& .MuiChartsAxis-root': {
+                                '& .MuiChartsAxis-tick': {
+                                  '& .MuiChartsAxis-tickLabel': {
+                                    fill: theme.palette.text.primary,
+                                  },
+                                },
+                              },
+                              '& .MuiBarElement-root': {
+                                '&:nth-of-type(1)': { fill: COLORS[0] },
+                                '&:nth-of-type(2)': { fill: COLORS[1] },
+                                '&:nth-of-type(3)': { fill: COLORS[2] },
+                                '&:nth-of-type(4)': { fill: COLORS[3] },
+                                '&:nth-of-type(5)': { fill: COLORS[4] },
+                                '&:nth-of-type(6)': { fill: COLORS[5] },
+                                '&:nth-of-type(7)': { fill: COLORS[6] },
+                                '&:nth-of-type(8)': { fill: COLORS[7] },
+                              },
+                            }}
+                          />
+                        </Box>
+                      ) : (
+                        <Box sx={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <CircularProgress />
+                        </Box>
+                      )}
                     </Box>
                   );
                 })()}
