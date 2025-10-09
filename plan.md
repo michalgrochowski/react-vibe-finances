@@ -465,9 +465,22 @@ model Category {
 - [ ] K4. Error pages: 404, 500, database connection errors, authentication errors (planned).
 
 ### L. Testing
-- [ ] L1. Unit-test utilities (money, month math).
+- [x] L1. Unit-test utilities (money, month math).
+  - Created money utility functions (centsToPlnString, plnToCents, formatPlnCurrency, etc.)
+  - Created date utility functions (formatToMonthString, parseMonthString, getMonthsForYear, etc.)
+  - Implemented 42 passing unit tests with Vitest
+  - Set up Vitest configuration with proper alias resolution
+  - Created test setup file with global mocks for next/navigation and next-auth
+  - Created testing utilities (renderWithProviders) and mock data helpers
+  - Added test scripts: test, test:run, test:ui, test:coverage
 - [ ] L2. Integration-test Server Actions with Prisma and a test PostgreSQL schema (or SQLite proxy for fast runs where compatible).
+  - Skipped for now due to complexity of mocking Prisma and Next.js auth
+  - Requires test database setup
 - [ ] L3. e2e: sign up → set defaults → add recurring → open month → apply → add expense → check donut updates → add savings.
+  - Playwright is installed but tests not yet written
+- [ ] L4. Component tests for UI components.
+  - Skipped for now due to jsdom compatibility issues with current Vitest version
+  - React Testing Library is set up and ready for future use
 
 ### M. Performance and accessibility
 - [ ] M1. Memoize chart/derived data.
