@@ -41,7 +41,7 @@ import {
   Check as CheckIcon,
   Close as CloseIcon,
 } from "@mui/icons-material";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { PieChart } from '@mui/x-charts/PieChart';
 import { useProfile } from "@/lib/hooks/useProfile";
 import { useRecurringExpenses } from "@/lib/hooks/useRecurringExpenses";
 import { useBudgetMonth, useCreateBudgetMonth } from "@/lib/hooks/useBudgetMonths";
@@ -358,16 +358,17 @@ export default function MonthDashboard() {
   // Prepare chart data based on selected view
   const chartDataByExpenses = [
     ...currentMonthExpenses.map((expense: any, index: number) => ({
-      name: expense.name,
+      id: index,
+      label: expense.name,
       value: expense.amount,
       color: COLORS[index % COLORS.length]
     })),
-    ...(remaining > 0 ? [{ name: "Remaining", value: remaining, color: "#E0E0E0" }] : [])
+    ...(remaining > 0 ? [{ id: -1, label: "Remaining", value: remaining, color: "#E0E0E0" }] : [])
   ];
 
   // Group expenses by category
   const chartDataByCategories = (() => {
-    const categoryMap = new Map<string, { name: string; value: number; color: string }>();
+    const categoryMap = new Map<string, { id: number; label: string; value: number; color: string }>();
     
     currentMonthExpenses.forEach((expense: any) => {
       const existing = categoryMap.get(expense.categoryId);
@@ -375,7 +376,8 @@ export default function MonthDashboard() {
         existing.value += expense.amount;
       } else {
         categoryMap.set(expense.categoryId, {
-          name: expense.category,
+          id: categoryMap.size,
+          label: expense.category,
           value: expense.amount,
           color: COLORS[categoryMap.size % COLORS.length]
         });
@@ -385,7 +387,7 @@ export default function MonthDashboard() {
     const categoryData = Array.from(categoryMap.values());
     return [
       ...categoryData,
-      ...(remaining > 0 ? [{ name: "Remaining", value: remaining, color: "#E0E0E0" }] : [])
+      ...(remaining > 0 ? [{ id: -1, label: "Remaining", value: remaining, color: "#E0E0E0" }] : [])
     ];
   })();
 
@@ -448,7 +450,7 @@ export default function MonthDashboard() {
       }}>
         {/* Left Column - This Month & Expenses List */}
         <Box sx={{ 
-          flex: { xs: "0 0 auto", lg: "0 0 25%" }, 
+          flex: { xs: "0 0 auto", lg: "0 0 20%" }, 
           minWidth: 0,
           width: { xs: "100%", lg: "auto" },
           display: "flex",
@@ -658,53 +660,61 @@ export default function MonthDashboard() {
                 </ToggleButtonGroup>
               </Box>
               
-              <Box sx={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={chartData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={isMobile ? 50 : 200}
-                      outerRadius={isMobile ? 100 : 400}
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
-                      {chartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => [`${value} PLN`, 'Amount']} />
-                    <Legend />
-                    {/* Center text showing remaining amount */}
-                    <text 
-                      x="50%" 
-                      y={isMobile ? '35%' : '45%'}
-                      textAnchor="middle" 
-                      dominantBaseline="middle"
-                      style={{
-                        fontSize: isMobile ? '12px' : '24px',
-                        fontWeight: 'bold',
-                        fill: theme.palette.text.primary
-                      }}
-                    >
-                      Remaining
-                    </text>
-                    <text 
-                      x="50%" 
-                      y={isMobile ? '40%' : '55%'}
-                      textAnchor="middle" 
-                      dominantBaseline="middle"
-                      style={{
-                        fontSize: isMobile ? '12px' : '20px',
-                        fontWeight: '600',
-                        fill: theme.palette.text.secondary
-                      }}
-                    >
-                      {remaining.toFixed(2)} PLN
-                    </text>
-                  </PieChart>
-                </ResponsiveContainer>
+              <Box sx={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", position: "relative", width: "100%", paddingLeft: 10 }}>
+                <PieChart
+                  series={[
+                    {
+                      data: chartData,
+                      innerRadius: isMobile ? 60 : 200,
+                      outerRadius: isMobile ? 120 : 400,
+                      paddingAngle: 2,
+                      valueFormatter: (item) => `${item.value.toFixed(2)} PLN`,
+                    },
+                  ]}
+                  width={isMobile ? 300 : 800}
+                  height={isMobile ? 300 : 800}
+                  slotProps={{
+                    legend: { position: { vertical: 'bottom', horizontal: 'center' } },
+                    tooltip: { trigger: 'item' },
+                  }}
+                />
+                {/* Center text showing remaining amount */}
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    textAlign: 'center',
+                    pointerEvents: 'none',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Typography
+                    variant={isMobile ? "body2" : "h6"}
+                    sx={{
+                      fontWeight: 'bold',
+                      color: theme.palette.text.primary,
+                      mb: 0.5,
+                      lineHeight: 1,
+                    }}
+                  >
+                    Remaining
+                  </Typography>
+                  <Typography
+                    variant={isMobile ? "caption" : "body1"}
+                    sx={{
+                      fontWeight: '600',
+                      color: theme.palette.text.secondary,
+                      lineHeight: 1,
+                    }}
+                  >
+                    {remaining.toFixed(2)} PLN
+                  </Typography>
+                </Box>
               </Box>
             </CardContent>
           </Card>
